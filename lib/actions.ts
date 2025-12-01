@@ -1,11 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { ContactSchema, RoomSchema } from "@/lib/zod";
+import { ContactSchema, RoomSchema, ReserveSchema } from "@/lib/zod";
 import { redirect } from "next/navigation";
 import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { auth } from "@/auth";
+import { differenceInCalendarDays } from "date-fns";
 
 export const saveRoom = async (
   image: string,
@@ -146,4 +147,65 @@ export const updateRoom = async (
   }
   revalidatePath("/admin/room");
   redirect("/admin/room");
+};
+
+export const CreateReserve = async (
+  roomId: string,
+  price: number,
+  startDate: Date,
+  endDAte: Date,
+  prevState: unknown,
+  formData: FormData
+) => {
+  const session = await auth();
+  if (!session || !session.user || !session.user.id)
+    redirect(`/signin?redirect_url=room/${roomId}`);
+
+  const rawData = {
+    name: formData.get("name"),
+    phone: formData.get("phone"),
+  };
+  const validateFields = ReserveSchema.safeParse(rawData);
+
+  if (!validateFields.success) {
+    return {
+      error: validateFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { name, phone } = validateFields.data;
+  const night = differenceInCalendarDays(endDAte, startDate);
+  if (night <= 0) return { messageDate: "Date must be at least 1 night" };
+  const total = night * price;
+
+  let reservationId;
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        data: {
+          name,
+          phone,
+        },
+        where: { id: session.user.id },
+      });
+      const reservation = await tx.reservation.create({
+        data: {
+          startDate: startDate,
+          endDate: endDAte,
+          price: price,
+          roomId: roomId,
+          userId: session.user.id as string,
+          Payment: {
+            create: {
+              amount: total,
+            },
+          },
+        },
+      });
+      reservationId = reservation.id;
+    });
+  } catch (error) {
+    console.log(error);
+  }
+  redirect(`/checkout/${reservationId}`);
 };

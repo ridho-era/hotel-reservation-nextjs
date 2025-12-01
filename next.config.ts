@@ -2,6 +2,27 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+
+  async headers() {
+    return [
+      {
+        source: "/api/payment/notification/:path*",
+        headers: [
+          { key: "Access-controll_Allow-Origin", value: "*" },
+          {
+            key: "Access-Controll-Allow-Methods",
+            value: "GET, POST",
+          },
+          {
+            key: "Access-Controll-Allow-Headers",
+            value:
+              "X-CSRF-Token, X-Requested-With, Accept, Accpet-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version ",
+          },
+        ],
+      },
+    ];
+  },
+
   reactCompiler: true,
   images: {
     remotePatterns: [
