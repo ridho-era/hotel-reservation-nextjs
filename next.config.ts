@@ -3,14 +3,18 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
-  images:{
+  images: {
     remotePatterns: [
       {
-        protocol:"https",
-        hostname:"lh3.googleusercontent.com"
-      }
-    ]
-  }
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "m2tvdofy1mook3wo.public.blob.vercel-storage.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
